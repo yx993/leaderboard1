@@ -31,6 +31,15 @@
   .above + .bar i { background:#4cc47f; }
   .labels { display:grid; grid-template-columns:56px 1fr 130px 80px 190px; padding:0 16px 6px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#8c97bd; }
   .labels span:nth-child(4), .labels span:nth-child(5) { text-align:right; }
+  .cd { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; padding:12px 16px; background:#141b33; border-radius:8px; box-shadow:inset 3px 0 0 #f0b84a; }
+  .cdl { font-size:12px; letter-spacing:.14em; color:#f0b84a; font-weight:600; }
+  .cdl small { display:block; margin-top:2px; letter-spacing:0; font-weight:400; color:#8c97bd; }
+  .cdn { display:flex; align-items:center; gap:10px; }
+  .cdn div { text-align:center; min-width:56px; }
+  .cdn b { display:block; font-family:'Space Grotesk',sans-serif; font-size:30px; line-height:1; }
+  .cdn small { font-size:11px; color:#8c97bd; text-transform:uppercase; letter-spacing:.08em; }
+  .cdn i { font-style:normal; font-size:26px; color:#6c779c; margin-top:-14px; }
+  @media (max-width:620px) { .cdn b { font-size:24px; } .cdn div { min-width:44px; } }
   footer { margin-top:16px; font-size:12px; line-height:1.5; color:#8c97bd; }
   @media (max-width:620px) {
     .c, .labels { grid-template-columns:34px 1fr 90px 64px 78px; padding-left:10px; padding-right:10px; font-size:13px; }
@@ -45,6 +54,14 @@
   <div class="head">
     <div><div class="eyebrow">EUW · SOLO/DUO</div><h1>Road to Challenger</h1></div>
     <div class="cut"><small>CUTOFF</small><b id="cutoff">–</b></div>
+  </div>
+  <div class="cd">
+    <div class="cdl">KALAN SÜRE<small>5 Aralık 00:00 (UK saati)</small></div>
+    <div class="cdn">
+      <div><b id="cd-d">--</b><small>gün</small></div><i>:</i>
+      <div><b id="cd-h">--</b><small>saat</small></div><i>:</i>
+      <div><b id="cd-m">--</b><small>dk</small></div>
+    </div>
   </div>
   <p class="lead" id="lead">Yükleniyor…</p>
   <div class="labels"><span>Rank</span><span>Player</span><span>Tier</span><span>LP</span><span>To Challenger</span></div>
@@ -102,6 +119,18 @@ async function refresh() {
     document.getElementById("lead").textContent = "Veri alınamadı, tekrar denenecek…";
   }
 }
+// 5 Aralık 00:00 UK saati. Türkiye saatiyle 00:00 için "2026-12-04T21:00:00Z" yaz.
+const TARGET = new Date("2026-12-05T00:00:00Z");
+function tick() {
+  const mins = Math.floor(Math.max(0, TARGET - Date.now()) / 60000);
+  const pad = (n) => String(n).padStart(2, "0");
+  document.getElementById("cd-d").textContent = pad(Math.floor(mins / 1440));
+  document.getElementById("cd-h").textContent = pad(Math.floor((mins % 1440) / 60));
+  document.getElementById("cd-m").textContent = pad(mins % 60);
+}
+tick();
+setInterval(tick, 1000);
+
 refresh();
 setInterval(refresh, 120000);
 </script>
