@@ -3,45 +3,57 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>EUW Leaderboard</title>
+<title>EUW Standings</title>
 <style>
-  :root { --bg:#f6f6f4; --card:#fff; --text:#1c1c1a; --muted:#77776f; --line:#e4e4de; --accent:#3b6fd4; }
+  :root { --bg:#f6f6f4; --card:#fff; --text:#1c1c1a; --muted:#77776f; --line:#e4e4de; --accent:#3b6fd4; --good:#1f8f4e; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#141416; --card:#1e1e22; --text:#ececea; --muted:#9a9aa2; --line:#2c2c32; --accent:#7ea6f5; }
+    :root { --bg:#141416; --card:#1e1e22; --text:#ececea; --muted:#9a9aa2; --line:#2c2c32; --accent:#7ea6f5; --good:#4cc47f; }
   }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,sans-serif; padding:24px 16px; }
-  main { max-width:720px; margin:0 auto; }
+  main { max-width:760px; margin:0 auto; }
   h1 { font-size:1.5rem; margin:0 0 4px; }
+  .lead { margin:0 0 4px; }
   .sub { color:var(--muted); font-size:.85rem; margin-bottom:16px; }
   .wrap { background:var(--card); border:1px solid var(--line); border-radius:12px; overflow-x:auto; }
   table { width:100%; border-collapse:collapse; }
   th, td { padding:12px 14px; text-align:left; white-space:nowrap; }
   th { color:var(--muted); font-size:.75rem; text-transform:uppercase; border-bottom:1px solid var(--line); }
   tr + tr td { border-top:1px solid var(--line); }
+  .num { text-align:right; }
   .pos { color:var(--muted); width:40px; }
   .first .pos { color:var(--accent); font-weight:700; }
-  .rank { font-weight:600; }
+  .tier { font-weight:600; }
   .muted { color:var(--muted); }
+  .good { color:var(--good); font-weight:600; }
   footer { margin-top:16px; color:var(--muted); font-size:.72rem; line-height:1.5; }
 </style>
 </head>
 <body>
 <main>
-  <h1>EUW Leaderboard</h1>
+  <h1>EUW Standings</h1>
+  <p class="lead" id="lead"></p>
   <div class="sub" id="status">Yükleniyor…</div>
   <div class="wrap">
     <table>
-      <thead><tr><th>#</th><th>Oyuncu</th><th>Rank</th><th>LP</th><th>W/L</th><th>WR</th></tr></thead>
+      <thead><tr><th>Rank</th><th>Player</th><th>Server</th><th>Tier</th><th class="num">LP</th><th class="num">To Challenger</th></tr></thead>
       <tbody id="rows"></tbody>
     </table>
   </div>
-  <footer>Solo/Duo ranked. Her 2 dakikada bir otomatik yenilenir.<br>
+  <footer>EUW Solo/Duo ranked. Her 2 dakikada bir otomatik yenilenir. "To Challenger": güncel Challenger cutoff'una kalan LP; yeşil "+" değeri cutoff'un üstünde olduğun LP'yi gösterir.<br>
   This site isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games.</footer>
 </main>
 <script>
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 const BIG = ["MASTER","GRANDMASTER","CHALLENGER"];
+const fmt = (n) => Number(n).toLocaleString("en-US");
+const title = (s) => s.charAt(0) + s.slice(1).toLowerCase();
+
+function cutCell(p) {
+  if (p.toCutoff == null) return '<td class="num muted">–</td>';
+  if (p.toCutoff <= 0) return `<td class="num good">+${fmt(-p.toCutoff)}</td>`;
+  return `<td class="num">${fmt(p.toCutoff)}</td>`;
+}
 
 async function refresh() {
   const status = document.getElementById("status");
@@ -49,17 +61,21 @@ async function refresh() {
     const r = await fetch("/api/ranks");
     if (!r.ok) throw new Error(r.status);
     const d = await r.json();
+    const top = d.players[0];
+    document.getElementById("lead").textContent = top && top.tier
+      ? `${top.id} is leading with ${fmt(top.lp)} LP.` : "";
     document.getElementById("rows").innerHTML = d.players.map((p, i) => {
-      const rank = p.tier ? (BIG.includes(p.tier) ? p.tier : p.tier + " " + p.division) : "Unranked";
+      const tier = p.tier ? (BIG.includes(p.tier) ? title(p.tier) : title(p.tier) + " " + p.division) : "Unranked";
       return `<tr class="${i === 0 && p.tier ? "first" : ""}">
         <td class="pos">${i + 1}</td>
         <td>${esc(p.id)}</td>
-        <td class="rank ${p.tier ? "" : "muted"}">${esc(rank)}</td>
-        <td>${p.tier ? p.lp : "–"}</td>
-        <td class="muted">${p.tier ? p.wins + "/" + p.losses : "–"}</td>
-        <td>${p.tier ? p.winrate + "%" : "–"}</td></tr>`;
+        <td class="muted">EUW</td>
+        <td class="tier ${p.tier ? "" : "muted"}">${esc(tier)}</td>
+        <td class="num">${p.tier ? fmt(p.lp) : "–"}</td>
+        ${cutCell(p)}</tr>`;
     }).join("");
-    status.textContent = "Son güncelleme: " + new Date(d.updated).toLocaleTimeString();
+    const cut = d.cutoff != null ? `Challenger cutoff: ${fmt(d.cutoff)} LP · ` : "";
+    status.textContent = cut + "Son güncelleme: " + new Date(d.updated).toLocaleTimeString();
   } catch (e) {
     status.textContent = "Veri alınamadı, tekrar denenecek…";
   }
