@@ -5,7 +5,10 @@ const PLAYERS = [
   { name: "Alp33333", tag: "Fun" },
   { name: "Talaat Pascha", tag: "Türk" },
   { name: "HLE Gumayusi", tag: "sidar" },
-];
+  { name: "DOMIDOMIDOMIDOMI", tag: "DOMI" },
+  { name: "antos", tag: "2060" },
+  { name: "xdd", tag: "dyron" },
+  ];
 const PLATFORM = "euw1";      // league-v4 host
 const REGIONAL = "europe";    // account-v1 host
 const TTL = 3 * 60 * 1000;    // cache 3 min (Riot rate limits)
