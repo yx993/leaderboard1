@@ -16,21 +16,23 @@
   .cut small { display:block; font-size:12px; color:#8c97bd; }
   .cut b { font-family:'Space Grotesk',sans-serif; font-size:28px; color:#f0b84a; }
   .lead { margin:0 0 14px; font-size:14px; color:#8c97bd; min-height:20px; }
-  .c { display:grid; grid-template-columns:56px 1fr 130px 80px 190px; align-items:center; min-height:44px; margin-bottom:6px; padding:6px 16px; background:#141b33; border-radius:8px; font-size:15px; }
+  .c { display:grid; grid-template-columns:56px 1fr 120px 70px 90px 150px; align-items:center; min-height:44px; margin-bottom:6px; padding:6px 16px; background:#141b33; border-radius:8px; font-size:15px; }
   .c > span:nth-child(1) { font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700; color:#6c779c; }
   .c > span:nth-child(2) { overflow-wrap:anywhere; padding-right:8px; }
   .c > span:nth-child(3) { font-weight:600; }
   .c > span:nth-child(4) { text-align:right; font-family:'Space Grotesk',sans-serif; }
-  .c > span:nth-child(5) { display:flex; flex-direction:column; align-items:flex-end; gap:3px; font-family:'Space Grotesk',sans-serif; }
+  .c > span:nth-child(5) { text-align:right; font-family:'Space Grotesk',sans-serif; }
+  .c > span:nth-child(6) { display:flex; flex-direction:column; align-items:flex-end; gap:3px; font-family:'Space Grotesk',sans-serif; }
   .top { background:#1d2547; box-shadow:inset 3px 0 0 #f0b84a; }
   .top > span:nth-child(1) { color:#f0b84a; }
   .ch { color:#f0b84a; } .gm { color:#ff7a85; } .ms { color:#b995f5; } .lo { color:#c5cbe0; } .un { color:#6c779c; }
-  .above { color:#4cc47f; }
+  .above { color:#4cc47f; } .dn { color:#ff7a85; } .zero { color:#6c779c; }
+  .chg small { display:block; font-size:10px; color:#6c779c; }
   .bar { width:150px; height:4px; border-radius:2px; background:#222c4d; }
   .bar i { display:block; height:4px; border-radius:2px; background:#f0b84a; }
   .above + .bar i { background:#4cc47f; }
-  .labels { display:grid; grid-template-columns:56px 1fr 130px 80px 190px; padding:0 16px 6px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#8c97bd; }
-  .labels span:nth-child(4), .labels span:nth-child(5) { text-align:right; }
+  .labels { display:grid; grid-template-columns:56px 1fr 120px 70px 90px 150px; padding:0 16px 6px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#8c97bd; }
+  .labels span:nth-child(4), .labels span:nth-child(5), .labels span:nth-child(6) { text-align:right; }
   .cd { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; padding:12px 16px; background:#141b33; border-radius:8px; box-shadow:inset 3px 0 0 #f0b84a; }
   .cdl { font-size:12px; letter-spacing:.14em; color:#f0b84a; font-weight:600; }
   .cdl small { display:block; margin-top:2px; letter-spacing:0; font-weight:400; color:#8c97bd; }
@@ -42,7 +44,7 @@
   @media (max-width:620px) { .cdn b { font-size:24px; } .cdn div { min-width:44px; } }
   footer { margin-top:16px; font-size:12px; line-height:1.5; color:#8c97bd; }
   @media (max-width:620px) {
-    .c, .labels { grid-template-columns:34px 1fr 90px 64px 78px; padding-left:10px; padding-right:10px; font-size:13px; }
+    .c, .labels { grid-template-columns:24px 1fr 78px 46px 52px 56px; padding-left:10px; padding-right:10px; font-size:12px; }
     .c > span:nth-child(1) { font-size:17px; }
     .bar { display:none; }
     h1 { font-size:26px; } .cut b { font-size:22px; }
@@ -64,10 +66,10 @@
     </div>
   </div>
   <p class="lead" id="lead">Yükleniyor…</p>
-  <div class="labels"><span>Rank</span><span>Player</span><span>Tier</span><span>LP</span><span>To Challenger</span></div>
+  <div class="labels"><span>Rank</span><span>Player</span><span>Tier</span><span>LP</span><span>LP change</span><span>To Challenger</span></div>
   <div id="rows"></div>
   <footer>
-    <span id="updated"></span> Her 2 dakikada bir otomatik yenilenir. "To Challenger": güncel Challenger cutoff'una kalan LP; yeşil "+" cutoff'un üstünde olduğunu gösterir.<br>
+    <span id="updated"></span> Her 2 dakikada bir otomatik yenilenir. "LP change": <span id="basenote"></span> itibarıyla LP değişimi. "To Challenger": güncel Challenger cutoff'una kalan LP; yeşil "+" cutoff'un üstünde olduğunu gösterir.<br>
     This site isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games.
   </footer>
 </main>
@@ -83,6 +85,13 @@ function tierCell(p) {
   const cls = p.tier === "CHALLENGER" ? "ch" : p.tier === "GRANDMASTER" ? "gm" : p.tier === "MASTER" ? "ms" : "lo";
   const name = BIG.includes(p.tier) ? title(p.tier) : title(p.tier) + " " + p.division;
   return `<span class="${cls}">${esc(name)}</span>`;
+}
+
+function chgCell(p) {
+  if (p.change == null) return '<span class="un">–</span>';
+  const cls = p.change > 0 ? "above" : p.change < 0 ? "dn" : "zero";
+  const txt = p.change > 0 ? "+" + fmt(p.change) : p.change < 0 ? "−" + fmt(-p.change) : "0";
+  return `<span class="chg ${cls}">${txt}</span>`;
 }
 
 function cutCell(p, cutoff) {
@@ -111,8 +120,11 @@ async function refresh() {
         <span>${esc(p.id)}</span>
         ${tierCell(p)}
         <span>${p.tier ? fmt(p.lp) : "–"}</span>
+        ${chgCell(p)}
         ${cutCell(p, d.cutoff)}
       </div>`).join("");
+    if (d.baselineAt) document.getElementById("basenote").textContent =
+      new Date(d.baselineAt).toLocaleString("tr-TR", { timeZone: "UTC", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) + " (UK saati)";
     document.getElementById("updated").textContent =
       "Son güncelleme: " + new Date(d.updated).toLocaleTimeString() + ".";
   } catch (e) {
