@@ -1,7 +1,6 @@
 // GET /api/ranks -> sorted EUW Solo/Duo leaderboard + Challenger cutoff. Needs env var RIOT_API_KEY.
 const PLAYERS = [
   { name: "xdd", tag: "dyron" },
-  { name: "antos", tag: "2060" },
   { name: "BGT Kachanava", tag: "2623" },
   { name: "HLE Gumayusi", tag: "sidar" },
   { name: "Alp33333", tag: "Fun" },
@@ -31,7 +30,6 @@ const total = (p) => {
 const BASELINE_AT = "2026-11-21T14:31:28Z";
 const BASELINE = {
   "xdd#dyron": 4646,
-  "antos#2060": 4588,
   "BGT Kachanava#2623": 4268,
   "HLE Gumayusi#sidar": 4003,
   "Alp33333#Fun": 3978,
@@ -50,12 +48,19 @@ const parseBase = (str) => {
 const puuids = {};
 let cache = { at: 0, data: null };
 
-async function riot(host, path) {
-  const r = await fetch(`https://${host}.api.riotgames.com${path}`, {
-    headers: { "X-Riot-Token": process.env.RIOT_API_KEY },
-  });
-  if (!r.ok) throw new Error(`${r.status} ${path}`);
-  return r.json();
+async function riot(host, path, tries = 3) {
+  for (let i = 0; i < tries; i++) {
+    const r = await fetch(`https://${host}.api.riotgames.com${path}`, {
+      headers: { "X-Riot-Token": process.env.RIOT_API_KEY },
+    });
+    if (r.status === 429 && i < tries - 1) { // rate limited: wait a bit and retry
+      const wait = Math.min(Number(r.headers.get("retry-after")) || 1, 3);
+      await new Promise((ok) => setTimeout(ok, wait * 1000));
+      continue;
+    }
+    if (!r.ok) throw new Error(`${r.status} ${path}`);
+    return r.json();
+  }
 }
 
 async function cutoff() {
@@ -84,9 +89,19 @@ async function load(p) {
   }
 }
 
+export const config = { maxDuration: 30 };
+
 export default async function handler(req, res) {
   if (!cache.data || Date.now() - cache.at > TTL) {
-    const [rows, cut] = await Promise.all([Promise.all(PLAYERS.map(load)), cutoff()]);
+    // one player at a time (gentler on Riot's rate limit); if a lookup fails keep the last good row
+    const prev = Object.fromEntries((cache.data?.players ?? []).map((p) => [p.id, p]));
+    const rows = [];
+    for (const p of PLAYERS) {
+      let row = await load(p);
+      if (row.error && prev[row.id]?.tier) row = { ...prev[row.id], stale: true };
+      rows.push(row);
+    }
+    const cut = (await cutoff()) ?? cache.data?.cutoff ?? null;
     rows.forEach((p) => {
       p.total = total(p);
       // > 0: LP still needed to reach cutoff. <= 0: already above it by that many LP.
