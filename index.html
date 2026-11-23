@@ -16,12 +16,13 @@
   .cut small { display:block; font-size:12px; color:#8c97bd; }
   .cut b { font-family:'Space Grotesk',sans-serif; font-size:28px; color:#f0b84a; }
   .lead { margin:0 0 14px; font-size:14px; color:#8c97bd; min-height:20px; }
-  .c { display:grid; grid-template-columns:56px 1fr 120px 70px 90px 150px; align-items:center; min-height:44px; margin-bottom:6px; padding:6px 16px; background:#141b33; border-radius:8px; font-size:15px; }
+  .c { display:grid; grid-template-columns:56px 1fr 120px 70px 100px 150px; align-items:center; min-height:44px; margin-bottom:6px; padding:6px 16px; background:#141b33; border-radius:8px; font-size:15px; }
   .c > span:nth-child(1) { font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700; color:#6c779c; }
   .c > span:nth-child(2) { overflow-wrap:anywhere; padding-right:8px; }
   .c > span:nth-child(3) { font-weight:600; }
   .c > span:nth-child(4) { text-align:right; font-family:'Space Grotesk',sans-serif; }
   .c > span:nth-child(5) { text-align:right; font-family:'Space Grotesk',sans-serif; }
+  .c > span:nth-child(5), .labels span:nth-child(5) { padding-right:22px; }
   .c > span:nth-child(6) { display:flex; flex-direction:column; align-items:flex-end; gap:3px; font-family:'Space Grotesk',sans-serif; }
   .top { background:#1d2547; box-shadow:inset 3px 0 0 #f0b84a; }
   .top > span:nth-child(1) { color:#f0b84a; }
@@ -31,7 +32,7 @@
   .bar { width:150px; height:4px; border-radius:2px; background:#222c4d; }
   .bar i { display:block; height:4px; border-radius:2px; background:#f0b84a; }
   .above + .bar i { background:#4cc47f; }
-  .labels { display:grid; grid-template-columns:56px 1fr 120px 70px 90px 150px; padding:0 16px 6px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#8c97bd; }
+  .labels { display:grid; grid-template-columns:56px 1fr 120px 70px 100px 150px; padding:0 16px 6px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#8c97bd; }
   .labels span:nth-child(4), .labels span:nth-child(5), .labels span:nth-child(6) { text-align:right; }
   .cd { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; padding:12px 16px; background:#141b33; border-radius:8px; box-shadow:inset 3px 0 0 #f0b84a; }
   .cdl { font-size:12px; letter-spacing:.14em; color:#f0b84a; font-weight:600; }
@@ -46,6 +47,7 @@
   @media (max-width:620px) {
     .c, .labels { grid-template-columns:24px 1fr 78px 46px 52px 56px; padding-left:10px; padding-right:10px; font-size:12px; }
     .c > span:nth-child(1) { font-size:17px; }
+    .c > span:nth-child(5), .labels span:nth-child(5) { padding-right:6px; }
     .bar { display:none; }
     h1 { font-size:26px; } .cut b { font-size:22px; }
   }
@@ -81,7 +83,7 @@ const BIG = ["MASTER","GRANDMASTER","CHALLENGER"];
 const MASTER_BASE = 2800;
 
 function tierCell(p) {
-  if (!p.tier) return '<span class="un">Unranked</span>';
+  if (!p.tier) return p.error ? `<span class="un" title="${esc(p.error)}">Veri yok</span>` : '<span class="un">Unranked</span>';
   const cls = p.tier === "CHALLENGER" ? "ch" : p.tier === "GRANDMASTER" ? "gm" : p.tier === "MASTER" ? "ms" : "lo";
   const name = BIG.includes(p.tier) ? title(p.tier) : title(p.tier) + " " + p.division;
   return `<span class="${cls}">${esc(name)}</span>`;
