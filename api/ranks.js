@@ -1,13 +1,14 @@
 // GET /api/ranks -> sorted EUW Solo/Duo leaderboard + Challenger cutoff. Needs env var RIOT_API_KEY.
 const PLAYERS = [
-  { name: "人の夢は終わらねェ", tag: "993" },
-  { name: "BGT Kachanava", tag: "2623" },
-  { name: "Alp33333", tag: "Fun" },
-  { name: "Talaat Pascha", tag: "Türk" },
-  { name: "HLE Gumayusi", tag: "sidar" },
-  { name: "DOMIDOMIDOMIDOMI", tag: "DOMI" },
   { name: "xdd", tag: "dyron" },
-  ];
+  { name: "antos", tag: "2060" },
+  { name: "BGT Kachanava", tag: "2623" },
+  { name: "HLE Gumayusi", tag: "sidar" },
+  { name: "Alp33333", tag: "Fun" },
+  { name: "DOMIDOMIDOMIDOMI", tag: "DOMI" },
+  { name: "人の夢は終わらねェ", tag: "993" },
+  { name: "Talaat Pascha", tag: "Türk" },
+];
 const PLATFORM = "euw1";      // league-v4 host
 const REGIONAL = "europe";    // account-v1 host
 const TTL = 3 * 60 * 1000;    // cache 3 min (Riot rate limits)
@@ -21,6 +22,29 @@ const total = (p) => {
   if (!p.tier) return null;
   const t = TIERS.indexOf(p.tier);
   return t >= 7 ? MASTER_BASE + p.lp : t * 400 + (DIVS[p.division] ?? 0) * 100 + p.lp;
+};
+
+// LP change is measured from this snapshot. Riot's API has no LP history, so we pin our own.
+// The numbers are each player's "total" from /api/ranks at BASELINE_AT. To restart the count
+// from now: open /api/ranks, copy every player's "total" here and update BASELINE_AT.
+// (You can also write a rank string instead, e.g. "MASTER 120" or "DIAMOND II 45".)
+const BASELINE_AT = "2026-11-21T14:31:28Z";
+const BASELINE = {
+  "xdd#dyron": 4646,
+  "antos#2060": 4588,
+  "BGT Kachanava#2623": 4268,
+  "HLE Gumayusi#sidar": 4003,
+  "Alp33333#Fun": 3978,
+  "DOMIDOMIDOMIDOMI#DOMI": 3621,
+  "人の夢は終わらねェ#993": 3099,
+  "Talaat Pascha#Türk": 3080,
+};
+const parseBase = (str) => {
+  const [t, ...r] = str.trim().toUpperCase().split(/\s+/);
+  const ti = TIERS.indexOf(t);
+  const lp = Number(r[r.length - 1]);
+  if (ti < 0 || !Number.isFinite(lp)) return null;
+  return ti >= 7 ? MASTER_BASE + lp : ti * 400 + (DIVS[r[0]] ?? 0) * 100 + lp;
 };
 
 const puuids = {};
@@ -67,9 +91,12 @@ export default async function handler(req, res) {
       p.total = total(p);
       // > 0: LP still needed to reach cutoff. <= 0: already above it by that many LP.
       p.toCutoff = cut != null && p.total != null ? cut + MASTER_BASE - p.total : null;
+      const raw = BASELINE[p.id];
+      const b = raw == null ? null : typeof raw === "number" ? raw : parseBase(raw);
+      p.change = b != null && p.total != null ? p.total - b : null; // LP gained/lost since BASELINE_AT
     });
     rows.sort((a, b) => (b.total ?? -1) - (a.total ?? -1));
-    cache = { at: Date.now(), data: { updated: new Date().toISOString(), cutoff: cut, players: rows } };
+    cache = { at: Date.now(), data: { updated: new Date().toISOString(), cutoff: cut, baselineAt: BASELINE_AT, players: rows } };
   }
   res.setHeader("Cache-Control", "s-maxage=180, stale-while-revalidate=60");
   res.status(200).json(cache.data);
